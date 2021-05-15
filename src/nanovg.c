@@ -1355,7 +1355,7 @@ static void nvg__flattenPaths(NVGcontext* ctx, float* commands, int nvals)
 		switch (cmd) {
 		case NVG_MOVETO:
 			nvg__addPath(ctx);
-			p = &ctx->commands[i+1];
+			p = &commands[i+1];
 			nvg__addPoint(ctx, p[0], p[1], NVG_PT_CORNER);
 			i += 3;
 			break;
