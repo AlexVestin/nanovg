@@ -503,11 +503,11 @@ void nvgEllipse(NVGcontext* ctx, float cx, float cy, float rx, float ry);
 void nvgCircle(NVGcontext* ctx, float cx, float cy, float r);
 
 // Fills the current path with current fill style.
-void nvgFill(NVGcontext* ctx);
-
+void nvgFillWithCommands(NVGcontext* ctx, float* commmands, int nvals);
 // Fills the current path with current stroke style.
-void nvgStroke(NVGcontext* ctx);
+void nvgStrokeWithCommands(NVGcontext* ctx, float* commmands, int nvals);
 
+float* nvgGetBounds(NVGcontext* ctx);
 
 //
 // Text

@@ -343,6 +343,13 @@ NVGparams* nvgInternalParams(NVGcontext* ctx)
     return &ctx->params;
 }
 
+
+float* nvgGetBounds(NVGcontext* ctx)
+{
+    return ctx->cache->bounds;
+}
+
+
 void nvgDeleteInternal(NVGcontext* ctx)
 {
 	int i;
@@ -1323,7 +1330,7 @@ static void nvg__tesselateBezier(NVGcontext* ctx,
 	nvg__tesselateBezier(ctx, x1234,y1234, x234,y234, x34,y34, x4,y4, level+1, type);
 }
 
-static void nvg__flattenPaths(NVGcontext* ctx)
+static void nvg__flattenPaths(NVGcontext* ctx, float* commands, int nvals)
 {
 	NVGpathCache* cache = ctx->cache;
 //	NVGstate* state = nvg__getState(ctx);
@@ -1343,8 +1350,8 @@ static void nvg__flattenPaths(NVGcontext* ctx)
 
 	// Flatten
 	i = 0;
-	while (i < ctx->ncommands) {
-		int cmd = (int)ctx->commands[i];
+	while (i < nvals) {
+		int cmd = (int)commands[i];
 		switch (cmd) {
 		case NVG_MOVETO:
 			nvg__addPath(ctx);
@@ -1353,16 +1360,16 @@ static void nvg__flattenPaths(NVGcontext* ctx)
 			i += 3;
 			break;
 		case NVG_LINETO:
-			p = &ctx->commands[i+1];
+			p = &commands[i+1];
 			nvg__addPoint(ctx, p[0], p[1], NVG_PT_CORNER);
 			i += 3;
 			break;
 		case NVG_BEZIERTO:
 			last = nvg__lastPoint(ctx);
 			if (last != NULL) {
-				cp1 = &ctx->commands[i+1];
-				cp2 = &ctx->commands[i+3];
-				p = &ctx->commands[i+5];
+				cp1 = &commands[i+1];
+				cp2 = &commands[i+3];
+				p = &commands[i+5];
 				nvg__tesselateBezier(ctx, last->x,last->y, cp1[0],cp1[1], cp2[0],cp2[1], p[0],p[1], 0, NVG_PT_CORNER);
 			}
 			i += 7;
@@ -1372,7 +1379,7 @@ static void nvg__flattenPaths(NVGcontext* ctx)
 			i++;
 			break;
 		case NVG_WINDING:
-			nvg__pathWinding(ctx, (int)ctx->commands[i+1]);
+			nvg__pathWinding(ctx, (int)commands[i+1]);
 			i += 2;
 			break;
 		default:
@@ -2221,14 +2228,14 @@ void nvgDebugDumpPathCache(NVGcontext* ctx)
 	}
 }
 
-void nvgFill(NVGcontext* ctx)
+void nvgFillWithCommands(NVGcontext* ctx, float* commands, int nvals)
 {
 	NVGstate* state = nvg__getState(ctx);
 	const NVGpath* path;
 	NVGpaint fillPaint = state->fill;
 	int i;
 
-	nvg__flattenPaths(ctx);
+	nvg__flattenPaths(ctx, commands, nvals);
 	if (ctx->params.edgeAntiAlias && state->shapeAntiAlias)
 		nvg__expandFill(ctx, ctx->fringeWidth, NVG_MITER, 2.4f);
 	else
@@ -2250,7 +2257,7 @@ void nvgFill(NVGcontext* ctx)
 	}
 }
 
-void nvgStroke(NVGcontext* ctx)
+void nvgStrokeWithCommands(NVGcontext* ctx, float* commands, int nvals)
 {
 	NVGstate* state = nvg__getState(ctx);
 	float scale = nvg__getAverageScale(state->xform);
@@ -2273,7 +2280,7 @@ void nvgStroke(NVGcontext* ctx)
 	strokePaint.innerColor.a *= state->alpha;
 	strokePaint.outerColor.a *= state->alpha;
 
-	nvg__flattenPaths(ctx);
+	nvg__flattenPaths(ctx, commands, nvals);
 
 	if (ctx->params.edgeAntiAlias && state->shapeAntiAlias)
 		nvg__expandStroke(ctx, strokeWidth*0.5f, ctx->fringeWidth, state->lineCap, state->lineJoin, state->miterLimit);
